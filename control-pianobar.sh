@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Tweaked by Amory Oct 2018
 
 # Copyright (c) 2012
 # Artur de S. L. Malabarba
@@ -43,7 +44,8 @@ if [[ "$fold" == "/pianobar" ]]; then
 	fold="$HOME/.config/pianobar"
   blankicon="$fold""$blankicon"
 fi
-notify="notify-send --hint=int:transient:1"
+# notify="notify-send --hint=int:transient:1"
+notify="growlnotify"
 zenity="zenity"
 logf="$fold/log"
 ctlf="$fold/ctl"
@@ -67,17 +69,17 @@ p|pause|play)
 		echo -n "p" > "$ctlf"
 		if [[ "$(cat $ip)" == 1 ]]; then
 			echo "0" > "$ip"
-			$notify -t 2500 -i "`cat $an`" "Song Paused" "`cat $fold/nowplaying`"
+			$notify --image "`cat $an`" -t "Song Paused" -m "`cat $fold/nowplaying`"
 		else
 			echo "1" > "$ip"
-			$notify -t 2500 -i "`cat $an`" "Song Playing" "`cat $fold/nowplaying`"
+			$notify --image "`cat $an`" -t "Song Playing" -m "`cat $fold/nowplaying`"
 		fi
 	else
 		mkdir -p "$fold/albumart"
 		rm "$logf" 2> /dev/null
 		rm "$ctlf" 2> /dev/null
 		mkfifo "$ctlf"
-		$notify -t 2500 "Starting Pianobar" "Logging in..."
+		$notify -t "Starting Pianobar" -m "Logging in..."
 		"$pianobar" | tee "$logf"
 	fi;;
     
@@ -97,15 +99,15 @@ download|d)
 		filesize=$(wc -c <"$filename")
 		filesize_mb=$(printf "%.2f\n" $(bc -l <<< "$filesize/1000000"))
 		if [ $minsize -ge $filesize ]; then
-			$notify -t 3000 "Redownloading..." "Last attempt for $basefilename failed, retrying"
+			$notify -t "Redownloading..." -m "Last attempt for $basefilename failed, retrying"
 			rm $filename 2> /dev/null
 		fi
 
 		if [[ ! -e "`cat $dn`.$ext" ]]; then
-			$notify -t 4000 "Downloading..." "'$basefilename' to `cat $dd`"
+			$notify -t "Downloading..." -m "'$basefilename' to `cat $dd`"
 			wget -q -O "`cat $dn`.$ext" "`cat $du`" &
 		else
-			$notify -t 2000 "$basefilename" "Already exists in `cat $dd` ($filesize_mb MB)"
+			$notify -t "$basefilename" -m "Already exists in `cat $dd` ($filesize_mb MB)"
 		fi
 	fi;;
 
@@ -127,22 +129,22 @@ next|n)
 tired|t)
 	if [[ -n `pidof pianobar` ]]; then
 		echo -n "t" > "$ctlf"
-		$notify -t 2000 "Tired" "We won't play this song for at least a month."
+		$notify -t "Tired" -m "We won't play this song for at least a month."
 	fi;;
     
 stop|quit|q)
 	if [[ -n `pidof pianobar` ]]; then
-		$notify -t 1000 "Quitting Pianobar"
+		$notify -t "Quitting Pianobar"
 		echo -n "q" > "$ctlf"
 		echo "0" > "$ip"
 		sleep 1
 		if [[ -n $(pidof pianobar) ]]; then
-			$notify -t 1000 "Oops" "Something went wrong. \n Force quitting..."
+			$notify -t "Oops" -m "Something went wrong. \n Force quitting..."
 			kill -9 $(pidof pianobar)
 			if [[ -n $(pidof pianobar) ]]; then
-				$notify -t 2000 "I'm Sorry" "I don't know what's happening. Could you try killing it manually?"
+				$notify -t "I'm Sorry" -m "I don't know what's happening. Could you try killing it manually?"
 			else
-				$notify -t 2000 "Success" "Pianobar closed."
+				$notify -t "Success" -m "Pianobar closed."
 			fi
 		fi
 	fi;;
@@ -156,7 +158,7 @@ playing|current|c)
 	if [[ -n `pidof pianobar` ]]; then
 		sleep 1
 		time="$(grep "#" "$logf" --text | tail -1 | sed 's/.*# \+-\([0-9:]\+\)\/\([0-9:]\+\)/\\\\-\1\\\/\2/')"
-		$notify -t 5000 -i "`cat $an`" "$(cat "$np")" "$(sed "1 s/.*/$time/" "$ds")"
+		$notify --image "`cat $an`" -t "$(cat "$np")" -m "$(sed "1 s/.*/$time/" "$ds")"
 	fi;;
     
 nextstation|ns)
@@ -169,7 +171,7 @@ nextstation|ns)
 			newstt="$(sed "s/^$newnum) \(.*\)/-->\1/" "$stl" | sed 's/^[0-9]\+) \(.*\)/* \1/')"
 		fi
 		echo "s$newnum" > "$ctlf"
-		$notify -t 2000 "Switching station" "$newstt"
+		$notify -t "Switching station" -m "$newstt"
 	fi;;
     
 prevstation|ps)
@@ -179,7 +181,7 @@ prevstation|ps)
 		[[ "$newnum" -lt 0 ]] && newnum=$(($(wc -l < "$stl")-1))
 		newstt="$(sed "s/^$newnum) \(.*\)/-->\1/" "$stl" | sed 's/^[0-9]\+) \(.*\)/* \1/')"
 		echo "s$newnum" > "$ctlf"
-		$notify -t 2000 "Switching station" "$newstt"
+		$notify -t "Switching station" -m "$newstt"
 	fi;;
     
 switchstation|ss)
@@ -189,7 +191,7 @@ switchstation|ss)
 		if [[ -n "$newnum" ]]; then
 			newstt="$(sed "s/^$newnum) \(.*\)/-->\1/" "$stl" | sed 's/^[0-9]\+) \(.*\)/* \1/')"
 			echo "s$newnum" > "$ctlf"
-			$notify -t 2000 "Switching station" "$newstt"
+			$notify -t "Switching station" -m "$newstt"
 		fi
 	fi;;
 	
@@ -201,7 +203,7 @@ switchstationlist|ssl)
 		if [[ -n "$newnum" ]]; then
 			newstt="$(sed "s/^$newnum) \(.*\)/-->\1/" "$stl" | sed 's/^[0-9]\+) \(.*\)/* \1/')"
 			echo "s$newnum" > "$ctlf"
-			$notify -t 2000 "Switching station" "$newstt"
+			$notify -t "Switching station" -m "$newstt"
 		fi
 	fi;;
     
@@ -211,9 +213,9 @@ upcoming|queue|u)
 		sleep .5
 		list="$(grep --text '[0-9])' $logf | sed 's/.*\t [0-9])/*/; s/&/\&amp;/; s/</\&lt;/')"
 		if [[ -z "$list" ]]; then
-			$notify "No Upcoming Songs" "This is probably the last song in the list."
+			$notify -t "No Upcoming Songs" -m "This is probably the last song in the list."
 		else
-			$notify -t 5000 "Upcoming Songs" "$list"
+			$notify -t "Upcoming Songs" -m "$list"
 		fi
 	fi;;    
 

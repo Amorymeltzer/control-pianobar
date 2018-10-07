@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Tweaked by Amory Oct 2018
 
 # Copyright (c) 2011
 # Artur de S. L. Malabarba
@@ -41,7 +42,7 @@ blankicon="$fold/pandora.jpg"
 # Edit this to customize the format songs are displayed in
 # (e.g. "$title - $artist" instead of "$artist - $title")
 # Possible variables you can use are $artist, $title, and $album.
-songname(){ echo "$artist - $title";};
+songname(){ echo "$title - $artist";};
 
 # Edit to change the naming format of downloaded songs
 # Possible variables are $title, $artist, and $album
@@ -58,7 +59,8 @@ if [[ "$fold" == "/pianobar" ]]; then
     fold="$HOME/.config/pianobar"
     blankicon="$fold""$blankicon"
 fi
-notify="notify-send --hint=int:transient:1"
+# notify="notify-send --hint=int:transient:1"
+notify="growlnotify"
 zenity="zenity"
 logf="$fold/log"
 ctlf="$fold/ctl"
@@ -80,7 +82,7 @@ while read L; do
     export "$k=$v"
 done < <(grep -e '^\(title\|artist\|album\|stationName\|songStationName\|pRet\|pRetStr\|wRet\|wRetStr\|songDuration\|songPlayed\|rating\|coverArt\|stationCount\|station[0-9]\+\)=' /dev/stdin) # don't overwrite $1...
 
-[[ "$rating" == 1 ]] && like="(like)"
+[[ "$rating" == 1 ]] && like="(+)"
 playpause="||"
 
 [[ "$(cat "$ip")" == 1 ]] && playpause="|>"
@@ -147,7 +149,7 @@ case "$1" in
 		  echo "$fold/albumart/$icon" > $an
 	   fi
 
-	   $notify -t 7000 -i "`cat $an`" "`cat $np`" "`cat $ds`"
+	   $notify --image "`cat $an`" -t "`cat $np`" -m "`cat $ds`"
 	   echo "" > "$logf"
 
 	   if [[ -e "$su" ]]; then
@@ -162,32 +164,32 @@ case "$1" in
     songexplain)
 	   cp "$ds" "$dse"
 	   tail -1 "$logf" | grep --text "(i) We're" | sed 's/.*(i).*features/*/' | sed 's/,/\n*/g' | sed 's/and \([^,]*\)\./\n* \1/' | sed 's/\* many other similarities.*/* and more./' >> "$dse"
-	   $notify -t 15000 -i "`cat $an`" "`cat $np`" "`cat $dse`";;
+	   $notify --image "`cat $an`" -t "`cat $np`" -m "`cat $dse`";;
     
     songlove)
 	   if [[ -e "$ine" ]]; then
-		  $notify -t 2500 "Song Liked" ""
+		  $notify -t "Song Liked" -m ""
 		  rm -f "$ine"
 	   else
-		  $notify -t 2500 -i "`cat $an`" "Song Liked" "`echo $(songname)`"
+		  $notify --image "`cat $an`" -t "Song Liked" -m "`echo $(songname)`"
 	   fi
 		 if [[ "$downliked" == "TRUE" ]]; then $controlpianobar d 3 &
 		 fi;;
     
     songban)
 	   if [[ -e "$ine" ]]; then
-		  $notify -t 2500 "Song Banned" ""
+		  $notify -t "Song Banned" -m ""
 		  rm -f "$ine"
 	   else
-		  $notify -t 2500 -i "`cat $an`" "Song Banned" "`echo $(songname)`"
+		  $notify --image "`cat $an`" -t "Song Banned" -m "`echo $(songname)`"
 	   fi;;
     
     songshelf)
 	   if [[ -e "$ine" ]]; then
-		  $notify -t 2500 "Song Put Away" ""
+		  $notify -t "Song Put Away" -m ""
 		  rm -f "$ine"
 	   else
-		  $notify -t 2500 -i "`cat $an`" "Song Put Away" "`echo $(songname)`"
+		  $notify --image "`cat $an`" -t "Song Put Away" -m "`echo $(songname)`"
 	   fi;;
     
     stationfetchplaylist)
@@ -206,20 +208,20 @@ case "$1" in
     
     userlogin)
 	   if [ "$pRet" -ne 1 ]; then
-		  $notify -t 1500 "Login ERROR 1" "$pRetStr"
-		  $notify -t 6000 "Restart Tor" "This is probably a proxy problem. If tor and polipo are running and configured, restart tor and try again."
-		  # $notify -t 6000 "Restarting Tor" "Input root password, wait a few seconds, and try running pianobar again."
+		  $notify -t "Login ERROR 1" -m "$pRetStr"
+		  $notify -t "Restart Tor" -m "This is probably a proxy problem. If tor and polipo are running and configured, restart tor and try again."
+		  # $notify -t "Restarting Tor" -m "Input root password, wait a few seconds, and try running pianobar again."
             # sleep 1.5
-		  # xterm -e sudo rc.d restart tor && $notify -t 1000 "Success!"
+		  # xterm -e sudo rc.d restart tor && $notify -t "Success!"
 		# if [[ $? -eq 0 ]]; then
-		# $notify "Failure" "Sorry, that's all I can do."
+		# $notify -t "Failure" -m "Sorry, that's all I can do."
 		# else
-		# $notify "Success" "I think it worked. Try running pianobar again."
+		# $notify -t "Success" -m "I think it worked. Try running pianobar again."
 		# fi
 	   elif [ "$wRet" -ne 1 ]; then
-		  $notify "Login ERROR 2" "$wRetStr"
+		  $notify -t "Login ERROR 2" -m "$wRetStr"
 	   else
-		  $notify -t 2000 "Login Successful" "Fetching Stations..."
+		  $notify -t "Login Successful" -m "Fetching Stations..."
 	   fi
 	   ;;
     
@@ -228,10 +230,10 @@ case "$1" in
     
     *)
 	   if [ "$pRet" -ne 1 ]; then
-		  $notify -i "$blankicon" "Pianobar - ERROR" "$1 failed: $pRetStr"
+		  $notify --image "$blankicon" -t "Pianobar - ERROR" -m "$1 failed: $pRetStr"
 	   elif [ "$wRet" -ne 1 ]; then
-		  $notify -i "$blankicon" "Pianobar - ERROR" "$1 failed: $wRetStr"
+		  $notify --image "$blankicon" -t "Pianobar - ERROR" -m "$1 failed: $wRetStr"
 	   else
-		  $notify -i "$blankicon" "$1" "fill $2"
+		  $notify --image "$blankicon" -t "$1" -m "fill $2"
 	   fi;;
 esac
